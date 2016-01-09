@@ -1,0 +1,11 @@
+#!/bin/bash
+if [ -n $1 ]; then
+  if [[ '--debug' == $1 ]]; then
+    sed -i 's/DEBUG [0-1]/DEBUG 1/' client.c
+    sed -i 's/DEBUG [0-1]/DEBUG 1/' server.c
+  fi
+fi
+if [ -z $1 ]; then
+  sed -i 's/DEBUG [0-1]/DEBUG 0/' client.c
+  sed -i 's/DEBUG [0-1]/DEBUG 0/' server.c
+fi

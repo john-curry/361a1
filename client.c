@@ -4,7 +4,7 @@
 * CSC 361
 * Instructor: Kui Wu
 -------------------------------*/
-#include <stdio.h>  // for printf and puts
+#include <stdio.h>  // for printf
 #include <stdlib.h> // to suppress warnings
 #include <string.h> // for parsing the URI
 #include <fcntl.h>  // open
@@ -16,7 +16,7 @@
 /* MAX_RES_LEN should be defined larger (e.g. 4096) in real testing. */
 #define MAX_STR_LEN 120
 #define MAX_RES_LEN 120
-#define DEBUG 0
+#define DEBUG 1
 
 void parse_URI(char *uri, char *hostname, int *port, char *identifier);
 void perform_http(int sockid, char *identifier);
