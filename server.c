@@ -4,8 +4,12 @@
 * CSC 361
 * Instructor: Kui Wu
 -------------------------------*/
-
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #define MAX_STR_LEN 120         /* maximum string length */
 #define SERVER_PORT_ID 9898     /* server port number */
 
@@ -19,7 +23,7 @@ void cleanExit();
  * Communicate with client and close new socket after done
  *---------------------------------------------------------------------------*/
 
-main(int argc, char *argv)
+int main(int argc, char **argv)
 {
     int newsockid; /* return value of the accept() call */
 
@@ -27,6 +31,7 @@ main(int argc, char *argv)
     {
       close(newsockid);
     }
+    return 0;
 }
 
 /*---------------------------------------------------------------------------*
@@ -46,18 +51,7 @@ void cleanExit()
  *
  *---------------------------------------------------------------------------*/
 
-perform_http(int sockid)
+void perform_http(int sockid)
 {
 
 }
-
-
-
-
-
-
-
-
-
-
-

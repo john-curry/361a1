@@ -12,7 +12,7 @@
 
 /* write "size" bytes of "ptr" to "sd" */
 
-writen(int sd, char *ptr, int size)
+int writen(int sd, char *ptr, int size)
 {
     int no_left, no_written;
 
@@ -30,7 +30,7 @@ writen(int sd, char *ptr, int size)
 
 /* read "size bytes from "sd" to "ptr" */
 
-readn(int sd, char *ptr, int size)
+int readn(int sd, char *ptr, int size)
 {
    int no_left, no_read;
    no_left = size;
