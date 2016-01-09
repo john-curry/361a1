@@ -4,7 +4,7 @@
 * CSC 361
 * Instructor: Kui Wu
 -------------------------------*/
-#include <stdio.h>  // for printf
+#include <stdio.h>  // for printf and puts
 #include <stdlib.h> // to suppress warnings
 #include <string.h> // for parsing the URI
 #include <fcntl.h>  // open

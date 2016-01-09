@@ -4,6 +4,10 @@ FLAGS=-Wall -pedantic -g
 .c.o:
 	$(CC) $(FLAGS) -c $?
 
+release: all
+	cat client.c | sed 's/DEBUG [0-1]/DEBUG 0/' > client.c
+	cat server.c | sed 's/DEBUG [0-1]/DEBUG 0/' > server.c
+
 # compile client and server
 all: mClient mServer
 
@@ -20,10 +24,8 @@ clean:
 
 debug: all
 	cat client.c | sed 's/DEBUG [0-1]/DEBUG 1/'
+	cat server.c | sed 's/DEBUG [0-1]/DEBUG 1/'
 
-release: all
-	cat client.c | sed 's/DEBUG [0-1]/DEBUG 0/'
-  
 test:
 	./mClient http://www.example.com/curse.html:80
 	./mClient smtp://www.whatever.com

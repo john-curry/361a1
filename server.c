@@ -12,7 +12,7 @@
 #include <sys/types.h>
 #define MAX_STR_LEN 120         /* maximum string length */
 #define SERVER_PORT_ID 9898     /* server port number */
-
+#define DEBUG 0
 void cleanExit();
 
 /*---------------------main() routine--------------------------*
