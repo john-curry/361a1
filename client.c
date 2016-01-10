@@ -14,14 +14,15 @@
 
 /* define maximal string and reply length, this is just an example.*/
 /* MAX_RES_LEN should be defined larger (e.g. 4096) in real testing. */
-#define MAX_STR_LEN 120
-#define MAX_RES_LEN 120
+#define MAX_STR_LEN 255
+#define MAX_RES_LEN 255
 #define DEBUG 1
 
 void parse_URI(char *uri, char *hostname, int *port, char *identifier);
 void perform_http(int sockid, char *identifier);
 int open_connection(char *hostname, int port);
 void debug(char * out);
+char *URI_to_URL(char *uri);
 
 /* --------- Main() routine ------------
  * three main task will be excuted:
@@ -44,7 +45,7 @@ int main(int argc, char **argv)
       scanf("%s", uri);
     }
 
-    printf("\nOpenning URI: %s.\n", uri);
+    printf("\nOpenning URI: %s\n", uri);
 
     parse_URI(uri, hostname, &port, identifier);
     sockid = open_connection(hostname, port);
@@ -52,52 +53,131 @@ int main(int argc, char **argv)
     return 0;
 }
 
+int URI_to_port(char *uri);
+char *URL_to_domain(char* url);
+char *domain_to_host(char* domain);
+char *URL_to_identifier(char *URL);
+
+char *URL_to_identifier(char *in) {
+  const char delim[2] = "/";
+  int length = strlen(in);
+
+  char url[length + 1];
+
+  strcpy(url, in); 
+
+  strtok(url, delim);
+
+  char * identifier = strtok(NULL, delim);
+
+  char * ret = (char*)malloc((strlen(identifier) + 1) * sizeof(char));
+
+  strcpy(ret, identifier);
+
+  return ret;
+
+}
+
+char *URL_to_domain(char* in) {
+  const char delim[2] = "/";
+  int length = strlen(in);
+  char url[length];
+  strcpy(url, in);
+  char * domain = strtok(url, delim);
+  char * ret = (char*)malloc((strlen(domain)) * sizeof(char));
+  strcpy(ret, domain);
+  return ret;
+}
+/* 
+---------------------------------------------------
+Returns the 0 if no port is found in the URI
+ --------------------------------------------------
+*/
+int URI_to_port(char *in) {
+  const char delim[2] = ":";
+
+  int length = strlen(in);
+
+  char uri[length];
+
+  int port = 0;
+
+  strtok(uri, delim); // discard protocol
+
+  strtok(NULL, delim); // discard url
+
+  char * port_str = strtok(NULL, delim);
+
+  if (port_str != NULL) {
+    port = atoi(port_str);
+  }
+  if (port == 0 && DEBUG) printf("ERROR: No port found.\n");
+  return port;
+}
+/*
+ -------------------------------------------------------------------
+  Returns NULL of URL cannot be determined.
+  Don't forget to free the return value when you are done!
+ -------------------------------------------------------------------
+*/
+char *URI_to_URL(char *in) {
+  const char delim[2] = ":";
+  char uri[MAX_STR_LEN];
+  
+  strcpy(uri, in); 
+
+  if (DEBUG) printf("INFO: URI -> %s\n", uri);
+
+  // make sure we are parsing a http uri
+  if (strcmp(strtok(uri, delim), "http") != 0) {
+    if (DEBUG) puts("ERROR: Not an http protocol.\n");
+    return NULL;
+  }
+
+  // get url from uri
+  const char * url = strtok(NULL, delim);
+  
+  if (DEBUG) printf("INFO URL -> %s\n", url);
+
+  char * ret = (char *)malloc(strlen(url) * sizeof(char));
+
+  strcpy(ret, url);
+
+  
+  if (DEBUG) printf("INFO: URL -> %s\n", ret);
+  return ret;
+}
+
 /*------ Parse an "uri" into "hostname" and resource "identifier" --------*/
 
 void parse_URI(char *uri, char *hostname, int *port, char *identifier)
 {
-  const char delim[2] = ":";
-   
-  // make sure we are parsing a http uri
-  if (strcmp(strtok(uri, delim), "http") != 0) {
-    puts("not an http protocol\n");
-    return;
-  }
+  char * url = URI_to_URL(uri); 
 
-  // get url from uri
-  char * url = strtok(NULL, delim);
-  
-  char * port_str = strtok(NULL, delim);
+  *port = URI_to_port(uri); 
 
-  if (port_str == NULL) {
-    *port = 80;
-  } else {
-    *port = atoi(port_str);
-    if (*port == 0) *port = 80; // default to port 80 if no port is given
-  }
-   
-  if (DEBUG) printf("URL: %s\n", url);
+  if (*port == 0) *port = 80;
+
+  if (DEBUG) printf("INFO: URL -> %s\n", url);
 
   // parse url
   if (url != NULL) {
-    const char delim_two[2] = "/";
-
-    // get domain name from url 
-    char * domain = strtok(url, delim_two);
-
-    identifier = strtok(NULL, delim_two);
+    char * domain = URL_to_domain(url);
+  
+    identifier = URL_to_identifier(url);
      
-    if (DEBUG) printf("Domain: %s\n", domain);
+    if (DEBUG) printf("INFO: Domain -> %s\n", domain);
+    if (DEBUG) printf("INFO: Identifier -> %s\n", identifier);
 
     if (domain != NULL) {
       const char delim_three[2] = ".";
 
       char * top_level = strtok(domain, delim_three);
 
-      if (DEBUG) printf("Top level domain: %s\n", top_level);
+      if (DEBUG) printf("INFO: Top level domain -> %s\n", top_level);
 
       if (top_level == NULL) {
-        puts("something went wrong with out domain name\n");
+        puts("ERROR: Something went wrong with out domain name.\n");
         return;
       }
 
@@ -108,17 +188,17 @@ void parse_URI(char *uri, char *hostname, int *port, char *identifier)
         hostname = top_level;
       }
     } else { 
-      puts("no domain name found\n"); 
+      puts("ERROR: No domain name found.\n"); 
       return;
     }
     
   } else { 
-    puts("no url name found.\n"); 
+    puts("ERROR: No url name found.\n"); 
     return;
   }
 
   if (DEBUG) {
-    printf("Host %s\n Identifier %s\n Port %d\n", hostname, identifier, *port);
+    printf("INFO: Host %s\n Identifier %s\n Port %d\n", hostname, identifier, *port);
   }
 }
 

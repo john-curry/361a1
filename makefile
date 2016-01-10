@@ -6,6 +6,7 @@ FLAGS=-Wall -pedantic -g
 
 # compile client and server
 all: mClient mServer
+	ctags *.c
 
 # compile client only 
 mClient: client.o  util.o
@@ -27,4 +28,6 @@ test:
 	./mClient smtp://www.whatever.com
 	./mClient http://www.example.com/curse.html:8080
 	./mClient http://www.example.com/curse.html
+	./mClient http://example.com/curse:90
 	./mClient http://example.com/curse.html
+	./mClient http://example.com/curse.html:90
