@@ -9,8 +9,11 @@
 #include <string.h> // for parsing the URI
 #include <fcntl.h>  // open
 #include <unistd.h> // close
+#include <stdbool.h>
 #include <sys/socket.h> // socket functions
 #include <sys/types.h>  // socket data structures
+#include <netinet/in.h>
+#include <netdb.h>
 
 /* define maximal string and reply length, this is just an example.*/
 /* MAX_RES_LEN should be defined larger (e.g. 4096) in real testing. */
@@ -123,11 +126,36 @@ void perform_http(int sockid, char *identifier)
 int open_connection(char *hostname, int port)
 {
 
-  //int sockfd;
-  /* generate socket
-   * connect socket to the host address
-   */
-  return 0;
+  int sockfd;
+  struct sockaddr_in serv_addr;
+  struct hostent *server;
+  sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (sockfd < 0) {
+    puts("Could not open socket\n");
+    exit(1);
+  }
+  server = gethostbyname(hostname);
+  if (server == NULL) {
+    puts("Server not found\n");
+    exit(1);
+  }
+
+  memset((char *) &serv_addr, 0, sizeof(serv_addr));
+
+  serv_addr.sin_family = AF_INET;
+  memcpy((char *)&serv_addr.sin_addr.s_addr,
+         (char *)server->h_addr_list,
+         server->h_length);
+  serv_addr.sin_port = htons(port);
+  if (connect(sockfd, (struct sockaddr *) & serv_addr, sizeof(serv_addr)) < 0) {
+    puts("Could not connect to a server");
+    exit(1);
+  }
+  while (true) {
+  int n = write(sockfd, "This is what i am sending", 265);
+  }
+
+  return sockfd;
 }
 
 void debug(char * out) 

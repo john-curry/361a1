@@ -1,6 +1,6 @@
 #makefile for project 1 works both in linux and unix system now
-CC=clang
-FLAGS=-Wall -pedantic -g
+CC=gcc
+FLAGS=-Wall -pedantic -g -std=c11
 .c.o:
 	$(CC) $(FLAGS) -c $?
 
