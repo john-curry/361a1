@@ -23,6 +23,9 @@ debug: all
 	cat client.c | sed 's/DEBUG [0-1]/DEBUG 1/'
 	cat server.c | sed 's/DEBUG [0-1]/DEBUG 1/'
 
+test2:
+	./mClient http:/www.git.local/:8888
+
 test:
 	./mClient http://www.example.com/curse.html:80
 	./mClient smtp://www.whatever.com

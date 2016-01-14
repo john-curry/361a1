@@ -4,6 +4,12 @@
 * CSC 361
 * Instructor: Kui Wu
 -------------------------------*/
+#include <stdio.h>  // for printf
+#include <stdlib.h> // to suppress warnings
+#include <string.h> // for parsing the URI
+#include <fcntl.h>  // open
+#include <unistd.h> // close
+#include <stdbool.h>
 
 
 /* ------------

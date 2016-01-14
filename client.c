@@ -10,6 +10,7 @@
 #include <fcntl.h>  // open
 #include <unistd.h> // close
 #include <stdbool.h>
+#include <errno.h>
 #include <sys/socket.h> // socket functions
 #include <sys/types.h>  // socket data structures
 #include <netinet/in.h>
@@ -62,7 +63,6 @@ void parse_URI(char *uri, char *hostname, int *port, char *identifier)
 {
   char * d1 = ":";
   char * d2 = "/";
-  char * d3 = ".";
   
   // resist mangling the input uri
   char * uri_cpy = (char *)malloc(sizeof(char) * strlen(uri));
@@ -90,17 +90,8 @@ void parse_URI(char *uri, char *hostname, int *port, char *identifier)
     *port = 80;
   }
 
-  char * d_cpy = (char *)malloc(sizeof(char) * strlen(domain));
-  strcpy(d_cpy, domain);
+  strcpy(hostname, domain);
 
-  // check for www in front of domain
-  char * top_d = strtok(d_cpy, d3);
-  if (strcmp(top_d, "www") == 0) {
-    strcpy(hostname, strtok(NULL, d3));
-  } else {
-    strcpy(hostname, top_d);
-  }
-  
   if (DEBUG) {
     printf("INFO: Host %s\n Identifier %s\n Port %d\n", hostname, identifier, *port);
   }
@@ -125,16 +116,23 @@ void perform_http(int sockid, char *identifier)
 
 int open_connection(char *hostname, int port)
 {
-
   int sockfd;
   struct sockaddr_in serv_addr;
   struct hostent *server;
+
+  if (DEBUG) { puts("INFO: getting sockfd\n"); }
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd < 0) {
-    puts("Could not open socket\n");
+    puts("ERROR: Could not open socket\n");
     exit(1);
   }
+
   server = gethostbyname(hostname);
+  
+  if (DEBUG) {
+    printf("INFO: connecting to server %s on port %d\n", server->h_name, port);
+  }
+
   if (server == NULL) {
     puts("Server not found\n");
     exit(1);
@@ -143,16 +141,22 @@ int open_connection(char *hostname, int port)
   memset((char *) &serv_addr, 0, sizeof(serv_addr));
 
   serv_addr.sin_family = AF_INET;
+
   memcpy((char *)&serv_addr.sin_addr.s_addr,
-         (char *)server->h_addr_list,
+         (char *)server->h_addr_list[0],
          server->h_length);
+
   serv_addr.sin_port = htons(port);
+
+  if (DEBUG) { puts("INFO: connecting to server.\n"); }
+
   if (connect(sockfd, (struct sockaddr *) & serv_addr, sizeof(serv_addr)) < 0) {
-    puts("Could not connect to a server");
+    printf("ERROR: Could not connect to a server. Recieved error *** %s ***\n", strerror(errno));
     exit(1);
   }
   while (true) {
-  int n = write(sockfd, "This is what i am sending", 265);
+    if (DEBUG) { puts("INFO: writing to server.\n"); }
+    write(sockfd, "This is what i am sending", 265);
   }
 
   return sockfd;
