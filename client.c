@@ -63,34 +63,38 @@ void parse_URI(char *uri, char *hostname, int *port, char *identifier)
 {
   char * d1 = ":";
   char * d2 = "/";
-  
+    
   // resist mangling the input uri
   char * uri_cpy = (char *)malloc(sizeof(char) * strlen(uri));
   strcpy(uri_cpy, uri);
 
-  // make sure we are parsing a http uri
+  // make sure we are parsing an http uri
   char * protocol = strtok(uri_cpy, d1);
   if (strcmp(protocol, "http") != 0) {
     puts("No protocol or bad protocol entered. Exiting program");
     exit(0);
   }
 
-  char * domain = strtok(NULL, d2);
+  char * host = strtok(NULL, d1);
+  
+  while (host[0] == '/') host++;
 
   char * id = strtok(NULL, d1);
-  
-  strcpy(identifier, id); 
+   
+  if (id != NULL) strcpy(identifier, id); 
+
+  *port = 80;
   
   // get port from uri string
-  char * port_str = strtok(NULL, d1);
-  if (port_str != NULL) {
-    *port = atoi(port_str);
-    if (*port == 0) *port = 80; 
-  } else {
-    *port = 80;
-  }
+  //char * port_str = strtok(NULL, d1);
+  //if (port_str != NULL) {
+  //  *port = atoi(port_str);
+  //  if (*port == 0) *port = 80; 
+  //} else {
+  //  *port = 80;
+  //}
 
-  strcpy(hostname, domain);
+  strcpy(hostname, host);
 
   if (DEBUG) {
     printf("INFO: Host %s\n Identifier %s\n Port %d\n", hostname, identifier, *port);
@@ -127,17 +131,21 @@ int open_connection(char *hostname, int port)
     exit(1);
   }
 
+  if (DEBUG) { printf("INFO: calling gethostbyname for host %s.\n", hostname); }
+
   server = gethostbyname(hostname);
   
+  if (server == NULL) {
+    printf("ERROR: Recieved error *** %s ***\n", strerror(h_errno));
+    exit(1);
+  }
+
   if (DEBUG) {
     printf("INFO: connecting to server %s on port %d\n", server->h_name, port);
   }
 
-  if (server == NULL) {
-    puts("Server not found\n");
-    exit(1);
-  }
 
+  if (DEBUG) { puts("INFO: managing memory..\n"); }
   memset((char *) &serv_addr, 0, sizeof(serv_addr));
 
   serv_addr.sin_family = AF_INET;
