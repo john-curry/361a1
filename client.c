@@ -75,7 +75,7 @@ void parse_URI(char *uri, char *hostname, int *port, char *identifier)
     exit(0);
   }
 
-  char * host = strtok(NULL, d1);
+  char * host = strtok(NULL, d2);
   
   while (host[0] == '/') host++;
 
