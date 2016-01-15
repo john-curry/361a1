@@ -140,10 +140,7 @@ int open_connection(char *hostname, int port)
     exit(1);
   }
 
-  if (DEBUG) {
-    printf("INFO: connecting to server %s on port %d\n", server->h_name, port);
-  }
-
+  if (DEBUG) { printf("INFO: connecting to server %s on port %d\n", server->h_name, port); }
 
   if (DEBUG) { puts("INFO: managing memory..\n"); }
   memset((char *) &serv_addr, 0, sizeof(serv_addr));
@@ -162,11 +159,7 @@ int open_connection(char *hostname, int port)
     printf("ERROR: Could not connect to a server. Recieved error *** %s ***\n", strerror(errno));
     exit(1);
   }
-  while (true) {
-    if (DEBUG) { puts("INFO: writing to server.\n"); }
-    write(sockfd, "This is what i am sending", 265);
-  }
-
+  if (DEBUG) { puts("INFO: Connected to server."); }
   return sockfd;
 }
 
