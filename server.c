@@ -19,11 +19,15 @@ void perform_http(int comm_fd, DIR * directory);
 char * mtime();
 const int MAX_RES_LEN = 10000; // large number
 void interupt_handler(int);
-
+void m_free(void*);
+void append_file(char*, FILE*);
+char * build_header(char*status);
 int listen_fd, comm_fd;
 
 int main(int argc, char** argv) {
     signal(SIGINT, interupt_handler);
+    signal(SIGABRT, interupt_handler);
+    signal(SIGSEGV, interupt_handler);
 
     if (argc < 2) {
       perror("We need a port number and the directory to operate");
@@ -85,21 +89,41 @@ char * mtime() {
   return ret;
 }
 
+char * build_header(char * status) {
+  puts("INFO: Building header.\n");
+  
+  char * http_response = "HTTP/1.0 ";
+  char * serv_info = "Server: SimServer/0.0.1 (Linux)\n";
+  char * current_time = mtime();
+  char* header = (char *)malloc(sizeof(char)*(
+  strlen( http_response) +
+  strlen( status) + 
+  strlen( current_time) +
+  strlen( serv_info) +
+  strlen( "\r\n\r\n") + 1
+  ));   
+  strcpy(header, http_response);
+  strcat(header, status);
+  strcat(header, current_time);
+  strcat(header, serv_info);
+  strcat(header, "\r\n\r\n");
+  puts("INFO: Done building header.\n");
+  return header;
+}
+
 void perform_http(int comm_fd, DIR * directory) {
   char response[MAX_RES_LEN];
   char recieved[MAX_RES_LEN];
+  char * header;
   FILE * file;
   struct dirent * in_file = NULL; 
   char * status = NULL;
   bool file_found = false;
-  char * http_response = "HTTP/1.0 ";
   char * ok_response = "200 OK.\r\n\r\n";
   char * not_found = "404 Not Found.\r\n\r\n";
   char * not_implemented = "505 Not Implemented.\r\n\r\n";
 
   //char * data = "<!DOCTYPE html><html><head>Someones age is how long you have known them.</head><body></body></html>";
-  char * serv_info = "Server: SimServer/0.0.1 (Linux)\n";
-  char * current_time = mtime();
 
   while(1) {
       bzero( recieved, MAX_RES_LEN);
@@ -135,26 +159,42 @@ void perform_http(int comm_fd, DIR * directory) {
         status = not_implemented;
         puts("INFO: Cound not understand method\n");
       }
-
-      
-      strcpy(response, http_response);
-      strcat(response, status);
-      strcat(response, current_time);
-      strcat(response, serv_info);
-      strcat(response, "\r\n\r\n");
+      header = build_header(status);
+      strcpy(response, header);
 
       if (file_found) {
-        puts("INFO: Reading file.\n");
-        char line[255];
-        while((fgets(line, sizeof(line), file) != NULL) && strlen(response) < MAX_RES_LEN) {
-          strcat(response, line);
-        }
-        puts("INFO: Done reading file.\n");
+        append_file(response, file);
       }
-      puts("INFO: Writing response to file.\n");
+      puts("INFO: Writing response to socket.\n");
       write(comm_fd, response, strlen(response)+1);
+      puts("INFO: Done writing response to socket.\n");
+      puts("INFO: Cleaning up...\n");
       file_found = false;
+      puts("INFO: Closing file...\n");
+      fclose(file);
+      //m_free(in_file);
+      puts("INFO: Freeing header...\n");
+      m_free(header);
+      puts("INFO: Done Cleaning up.\n");
    }
+   puts("INFO: Closing socket file descriptors.\n");
+   close(comm_fd);
+   close(listen_fd);
+}
+
+void append_file(char * response, FILE * file) {
+  puts("INFO: Reading file.\n");
+  char line[255];
+  while((fgets(line, sizeof(line), file) != NULL) && strlen(response) < MAX_RES_LEN) {
+    strcat(response, line);
+  }
+  puts("INFO: Done reading file.\n");
+}
+
+void m_free(void * ptr) {
+  if (ptr != NULL) {
+    free(ptr);
+  }
 }
 
 void interupt_handler(int param) {
