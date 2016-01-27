@@ -13,9 +13,15 @@
 #include <time.h> 
 #include <stdbool.h>
 #include <signal.h>
+#include <pthread.h>
+
+typedef struct _thread_args {
+  int comm_fd;
+  DIR * directory;
+} thread_args;
 
 int start_server(int);
-void perform_http(int comm_fd, DIR * directory);
+void *perform_http(void*);
 char * mtime();
 const int MAX_RES_LEN = 10000; // large number
 void interupt_handler(int);
@@ -23,12 +29,13 @@ void m_free(void*);
 void append_file(char*, FILE*);
 char * build_header(char*status);
 int listen_fd, comm_fd;
+void clean_exit();
 
 int main(int argc, char** argv) {
     signal(SIGINT, interupt_handler);
     signal(SIGABRT, interupt_handler);
     signal(SIGSEGV, interupt_handler);
-
+    
     if (argc < 2) {
       perror("We need a port number and the directory to operate");
       exit(1);
@@ -43,10 +50,19 @@ int main(int argc, char** argv) {
       exit(1);
     }
 
-    comm_fd = start_server(atoi(argv[1])); 
+    while ((comm_fd = start_server(atoi(argv[1]))) < 0) {
+      puts("INFO: Connected to client.\n"); 
+      pthread_t thread_id;
+      thread_args args = { .directory = directory, .comm_fd = comm_fd };
 
-    perform_http(comm_fd, directory);
-    
+      if (pthread_create(&thread_id, NULL, &perform_http,(void*) &args) != 0) {
+        puts("ERROR: Could not create thread.\n");
+        close(listen_fd);
+        close(comm_fd);
+        exit(1);
+      }
+    }
+    if (comm_fd > 0) close(comm_fd);
     close(listen_fd); 
 }
 
@@ -67,6 +83,7 @@ int start_server(int port) {
  
     listen(listen_fd, 3);
  
+
     comm_fd = accept(listen_fd, (struct sockaddr*) NULL, NULL);
 
     return comm_fd;
@@ -112,7 +129,16 @@ char * build_header(char * status) {
   return header;
 }
 
-void perform_http(int comm_fd, DIR * directory) {
+void *perform_http(void * vargs) {
+  thread_args* args = vargs;
+
+  int comm_fd = args->comm_fd;
+  DIR * directory = args->directory;
+
+  if (comm_fd < 1) { 
+    clean_exit();
+  }
+
   char response[MAX_RES_LEN];
   char recieved[MAX_RES_LEN];
   char * header;
@@ -129,10 +155,6 @@ void perform_http(int comm_fd, DIR * directory) {
       puts("INFO: Starting server.\n");
       bzero( recieved, MAX_RES_LEN);
       bzero( response, MAX_RES_LEN);
-      if (comm_fd < 1) { 
-        close(comm_fd);
-        return;    
-      }
       puts("INFO: Reading client server.\n");
       read(comm_fd,recieved,100);
       char * method = strtok(recieved, " ");
@@ -201,7 +223,11 @@ void m_free(void * ptr) {
   }
 }
 
+void clean_exit() {
+  if (comm_fd > 0) close(comm_fd);
+  if (listen_fd > 0) close(listen_fd);
+  exit(1);
+}
+
 void interupt_handler(int param) {
-  close(comm_fd);
-  close(listen_fd);
 }
