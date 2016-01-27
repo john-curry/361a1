@@ -12,19 +12,23 @@
 #include <unistd.h> 
 #include <time.h> 
 #include <stdbool.h>
+#include <signal.h>
 
 int start_server(int);
 void perform_http(int comm_fd, DIR * directory);
 char * mtime();
+void interupt_handler(int);
 
+int listen_fd, comm_fd;
 
 int main(int argc, char** argv) {
+    signal(SIGINT, interupt_handler);
 
     if (argc < 2) {
       perror("We need a port number and the directory to operate");
       exit(1);
     }
-    
+        
     DIR* directory; 
     
     directory = opendir(argv[2]); 
@@ -34,7 +38,7 @@ int main(int argc, char** argv) {
       exit(1);
     }
 
-    int comm_fd = start_server(atoi(argv[1])); 
+    comm_fd = start_server(atoi(argv[1])); 
 
     perform_http(comm_fd, directory);
  
@@ -60,6 +64,24 @@ int start_server(int port) {
     comm_fd = accept(listen_fd, (struct sockaddr*) NULL, NULL);
 
     return comm_fd;
+}
+
+char * mtime() {
+  struct tm *tm;
+  time_t t;
+  char str_time[100];
+  char str_date[100];
+  t = time(NULL);
+  tm = localtime(&t);
+
+  strftime(str_time, sizeof(str_time), "%H:%M:%S GMT ", tm);
+  strftime(str_date, sizeof(str_date), "Date: %a, %d %b %Y", tm);
+  strcat(str_date, str_time);
+  //printf("Got time %s\n", str_date);
+  char * ret = (char *)malloc(strlen(str_date) * sizeof(char));
+  strcpy(ret, str_date);
+  strcat(ret, "\n");
+  return ret;
 }
 
 void perform_http(int comm_fd, DIR * directory) {
@@ -114,25 +136,14 @@ void perform_http(int comm_fd, DIR * directory) {
       if (file_found) {
         // read file and send it over the line
       }
-      write(comm_fd, recieved, strlen(recieved)+1);
+      write(comm_fd, response, strlen(recieved)+1);
+      puts("Wrote response to client\n");
+
       file_found = false;
    }
 }
 
-char * mtime() {
-  struct tm *tm;
-  time_t t;
-  char str_time[100];
-  char str_date[100];
-  t = time(NULL);
-  tm = localtime(&t);
-
-  strftime(str_time, sizeof(str_time), "%H:%M:%S GMT ", tm);
-  strftime(str_date, sizeof(str_date), "Date: %a, %d %b %Y", tm);
-  strcat(str_date, str_time);
-  //printf("Got time %s\n", str_date);
-  char * ret = (char *)malloc(strlen(str_date) * sizeof(char));
-  strcpy(ret, str_date);
-  strcat(ret, "\n");
-  return ret;
+void interupt_handler(int param) {
+  close(comm_fd);
+  close(listen_fd);
 }
