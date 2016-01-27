@@ -17,9 +17,7 @@
 int start_server(int);
 void perform_http(int comm_fd, DIR * directory);
 char * mtime();
-<<<<<<< HEAD
 const int MAX_RES_LEN = 10000; // large number
-=======
 void interupt_handler(int);
 
 int listen_fd, comm_fd;
