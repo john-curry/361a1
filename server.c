@@ -27,27 +27,27 @@ void perform_http(int);
 
 int main(int argc, char **argv)
 {
-    int sockfd, newsockid, clilen, n;
-    struct sockadd_in, serv_addr, cli_addr;
-    int port = 80;
-    if (sockfd = socket(AF_INET, SOCK_STREAM, 0) < ) {
-      printf("ERROR: Failed to get a socket.\n");
-      exit(1);
-    }
+    //int sockfd, newsockid, clilen, n;
+    //struct sockadd_in, serv_addr, cli_addr;
+    //int port = 80;
+    //if (sockfd = socket(AF_INET, SOCK_STREAM, 0) < ) {
+    //  printf("ERROR: Failed to get a socket.\n");
+    //  exit(1);
+    //}
 
-    memset((char *)serv_addr, 0, sizeof(serv_addr)); 
+    //memset((char *)serv_addr, 0, sizeof(serv_addr)); 
 
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(port);
-    
-    if (bind(sockfd, (struct sock_addr *) &serv_addr, sizeof(serv_addr)) < 0) {
-      printf("ERROR: Recieved error
-    while (1)
-    {
-      close(newsockid);
-    }
-    return 0;
+    //serv_addr.sin_family = AF_INET;
+    //serv_addr.sin_addr.s_addr = INADDR_ANY;
+    //serv_addr.sin_port = htons(port);
+    //
+    //if (bind(sockfd, (struct sock_addr *) &serv_addr, sizeof(serv_addr)) < 0) {
+    //  printf("ERROR: Recieved error");
+    //while (1)
+    //{
+    //  close(newsockid);
+    //}
+    //return 0;
 }
 
 /*---------------------------------------------------------------------------*

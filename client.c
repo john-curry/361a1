@@ -4,13 +4,16 @@
 * CSC 361
 * Instructor: Kui Wu
 -------------------------------*/
+
 #include <stdio.h>  // for printf
 #include <stdlib.h> // to suppress warnings
 #include <string.h> // for parsing the URI
+#include <strings.h> // bzero
 #include <fcntl.h>  // open
 #include <unistd.h> // close
 #include <stdbool.h>
 #include <errno.h>
+#include <assert.h>
 #include <sys/socket.h> // socket functions
 #include <sys/types.h>  // socket data structures
 #include <netinet/in.h>
@@ -23,7 +26,7 @@
 #define DEBUG 1
 
 void parse_URI(char *uri, char *hostname, int *port, char *identifier);
-void perform_http(int sockid, char *identifier);
+void perform_http(int sockid, char *hostname, char *identifier);
 int open_connection(char *hostname, int port);
 void debug(char * out);
 
@@ -51,9 +54,15 @@ int main(int argc, char **argv)
     printf("\nOpenning URI: %s\n", uri);
 
     parse_URI(uri, hostname, &port, identifier);
-    printf("Hostname: %s\nport: %d\nidentifier: %s\n", hostname, port, identifier);
+
+    printf("Hostname: %s port: %d identifier: %s\n", hostname, port, identifier);
+
     sockid = open_connection(hostname, port);
-    perform_http(sockid, identifier);
+    
+    printf("Hostname: %s\nport: %d\nidentifier: %s\n", hostname, port, identifier);
+
+    perform_http(sockid, hostname, identifier);
+
     return 0;
 }
 
@@ -69,47 +78,120 @@ void parse_URI(char *uri, char *hostname, int *port, char *identifier)
   strcpy(uri_cpy, uri);
 
   // make sure we are parsing an http uri
-  char * protocol = strtok(uri_cpy, d1);
+  char * protocol = strtok(uri_cpy, d1); // read up to the first colon "/"
+
   if (strcmp(protocol, "http") != 0) {
     puts("No protocol or bad protocol entered. Exiting program");
     exit(0);
   }
 
-  char * host = strtok(NULL, d2);
+  char * host = strtok(NULL, d2); // read up to the first slash "/"
   
-  while (host[0] == '/') host++;
+  while (host[0] == '/') host++; // get rid of the leading slash slash "//"
 
-  char * id = strtok(NULL, d1);
-   
-  if (id != NULL) strcpy(identifier, id); 
-
-  *port = 80;
+  char * id = strtok(NULL, d1); // the id is beteen the end of the host and the first colon ":"
+  // if there is no id then there will be no '/' and just a straight colon ':' 
+  // the port is from the id to the end of the line or from the last ':' to the end of line
   
-  // get port from uri string
-  //char * port_str = strtok(NULL, d1);
-  //if (port_str != NULL) {
-  //  *port = atoi(port_str);
-  //  if (*port == 0) *port = 80; 
-  //} else {
-  //  *port = 80;
-  //}
+  if (id == NULL) {
+  }
 
-  strcpy(hostname, host);
+  char * port_str = strtok(NULL, d1);
+  if (port_str == NULL) {
+    *port = 80;
+  } else {
+    *port = atoi(port_str);
+    if (*port == -1) {
+      *port = 80;
+    }
+  }
+  if (id != NULL) {
+    strcpy(identifier, id);
+  } else {
+    identifier = NULL;
+  }
+  if (host != NULL) strcpy(hostname, host);
 
   if (DEBUG) {
-    printf("INFO: Host %s\n Identifier %s\n Port %d\n", hostname, identifier, *port);
+   // printf("INFO: Host %s\n Identifier %s\n Port %d\n", hostname, identifier, *port);
   }
 }
 
 /*------------------------------------*
-* connect to a HTTP server using hostname and port,
-* and get the resource specified by identifier
+* I am assuming that the we have already called
+* connect on the socket and we are connected to 
+* the server.
 *--------------------------------------*/
-void perform_http(int sockid, char *identifier)
-{
-  /* connect to server and retrieve response */
+void perform_http(int sockfd, char* hostname, char *identifier)
+{  
+    char sendline[MAX_STR_LEN];
+    char recvline[MAX_STR_LEN];
+    
+    //while (hostname[0] == 'w' || hostname[0] == '.') hostname++;
+    char * header;
+    char * method = "GET ";
+    char * http_version = " HTTP/1.0\r\n\r\n";
+    char * host_field = "Host: ";
+    char * host_field_with_arguement = malloc(sizeof(char) * (strlen(host_field) + strlen(hostname) + 1));
 
-   close(sockid);
+    char * connection_field = "\nConnection: Keep-Alive\n";
+
+    strcpy(host_field_with_arguement, host_field);
+    strcat(host_field_with_arguement, hostname);
+
+    if (identifier != NULL) {
+      header = (char *)malloc(sizeof(char) * (
+        strlen(method) +
+        strlen(identifier) +
+        strlen(http_version) + 
+        strlen(host_field) +
+        strlen(connection_field) + 1)
+      );
+
+      strcpy(header, method); 
+      strcat(header, identifier);
+      strcat(header, http_version);
+      strcat(header, host_field_with_arguement);
+      strcat(header, connection_field);
+    } else {
+      header = (char *)malloc(sizeof(char) * (
+        strlen(method) +
+        strlen(http_version) + 
+        strlen(host_field) + 1)
+      );
+      strcpy(header, method); 
+      strcat(header, http_version);
+      strcat(header, host_field_with_arguement);
+    }
+
+    bool done_recieving = false;
+    bool header_sent = false;
+    if (DEBUG) { puts("INFO: sending header."); }
+
+    while(!done_recieving) {
+        int bytes_read = 0;
+        bzero( sendline, MAX_STR_LEN);
+        bzero( recvline, MAX_STR_LEN);
+
+        if (!header_sent) {
+          header_sent = true;
+          puts("---Request begin---");
+          puts(header);
+          write(sockfd,header,strlen(header)+1);
+          puts("---Request end---");
+          puts("HTTP request sent, awaiting response...");
+        }
+
+        bytes_read = read(sockfd,recvline,100);
+
+        if (bytes_read == 0) {
+          done_recieving = true;
+        }
+
+        printf("%s",recvline);
+    }
+    puts("--Done recieving---");
+   close(sockfd);
 }
 
 /*---------------------------------------------------------------------------*
