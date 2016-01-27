@@ -14,21 +14,23 @@
 #include <stdbool.h>
 #include <signal.h>
 #include <pthread.h>
+#include <errno.h>
 
 typedef struct _thread_args {
   int comm_fd;
-  DIR * directory;
+  char * directory;
 } thread_args;
 
 int start_server(int);
+int find_connection(int l_fd);
 void *perform_http(void*);
-char * mtime();
+void mtime(char response[]);
 const int MAX_RES_LEN = 10000; // large number
 void interupt_handler(int);
 void m_free(void*);
 void append_file(char*, FILE*);
-char * build_header(char*status);
-int listen_fd, comm_fd;
+void build_header(char response[], char * status);
+int listen_fd;
 void clean_exit();
 
 int main(int argc, char** argv) {
@@ -41,33 +43,44 @@ int main(int argc, char** argv) {
       exit(1);
     }
         
-    DIR* directory; 
-    
-    directory = opendir(argv[2]); 
+    char *directory = argv[2];
 
     if (directory == NULL) {
       puts("ERROR: Could not open directory.\n");
       exit(1);
     }
 
-    while ((comm_fd = start_server(atoi(argv[1]))) < 0) {
+    listen_fd = start_server(atoi(argv[1]));
+    if (listen_fd < 0) {
+      puts("ERROR: Could not open a port to listen on.\n");
+      clean_exit();
+    }
+
+    int new_comm_fd; 
+    while ((new_comm_fd = find_connection(listen_fd)) > 0) {
+
       puts("INFO: Connected to client.\n"); 
+
       pthread_t thread_id;
-      thread_args args = { .directory = directory, .comm_fd = comm_fd };
+
+      thread_args args = { .directory = directory, .comm_fd = new_comm_fd };
+
+      puts("INFO: Creating pthread.\n");
 
       if (pthread_create(&thread_id, NULL, &perform_http,(void*) &args) != 0) {
         puts("ERROR: Could not create thread.\n");
         close(listen_fd);
-        close(comm_fd);
+        close(new_comm_fd);
         exit(1);
       }
+      puts("INFO: DOne creating pthread.\n");
     }
-    if (comm_fd > 0) close(comm_fd);
     close(listen_fd); 
 }
 
 int start_server(int port) {
-    int listen_fd, comm_fd;
+    puts("INFO: Starting server.\n");
+    int listen_fd;
  
     struct sockaddr_in servaddr;
  
@@ -81,15 +94,25 @@ int start_server(int port) {
  
     bind(listen_fd, (struct sockaddr *) &servaddr, sizeof(servaddr));
  
-    listen(listen_fd, 3);
- 
+    puts("INFO: listening server.\n");
 
-    comm_fd = accept(listen_fd, (struct sockaddr*) NULL, NULL);
+    listen(listen_fd, 3);
+    
+    return listen_fd; 
+}
+
+int find_connection(int l_fd) {
+    int comm_fd;
+    puts("INFO: accepting client.\n");
+
+    comm_fd = accept(l_fd, (struct sockaddr*) NULL, NULL);
+
+    puts("INFO: accepted client.\n");
 
     return comm_fd;
 }
 
-char * mtime() {
+void mtime(char response[]) {
   struct tm *tm;
   time_t t;
   char str_time[100];
@@ -100,41 +123,41 @@ char * mtime() {
   strftime(str_time, sizeof(str_time), "%H:%M:%S GMT ", tm);
   strftime(str_date, sizeof(str_date), "Date: %a, %d %b %Y", tm);
   strcat(str_date, str_time);
-  //printf("Got time %s\n", str_date);
-  char * ret = (char *)malloc(strlen(str_date) * sizeof(char));
-  strcpy(ret, str_date);
-  strcat(ret, "\n");
-  return ret;
+  strcpy(response, str_date);
+  strcat(response, "\n");
 }
 
-char * build_header(char * status) {
-  puts("INFO: Building header.\n");
+void build_header(char response[], char * status) {
+  printf("INFO: Building header for status: %s.\n", status);
   
   char * http_response = "HTTP/1.0 ";
   char * serv_info = "Server: SimServer/0.0.1 (Linux)\n";
-  char * current_time = mtime();
-  char* header = (char *)malloc(sizeof(char)*(
-  strlen( http_response) +
-  strlen( status) + 
-  strlen( current_time) +
-  strlen( serv_info) +
-  strlen( "\r\n\r\n") + 1
-  ));   
-  strcpy(header, http_response);
-  strcat(header, status);
-  strcat(header, current_time);
-  strcat(header, serv_info);
-  strcat(header, "\r\n\r\n");
+  //char* header = (char *)malloc((sizeof(char))*(
+  //strlen( http_response) +
+  //strlen( status) + 
+  //strlen( current_time) +
+  //strlen( serv_info) +
+  //strlen( "\r\n\r\n") + 5
+  //));   
+
+  strcpy(response, http_response);
+  strcat(response, status);
+  mtime(response);
+  strcat(response, serv_info);
+  strcat(response, "\r\n\r\n");
   puts("INFO: Done building header.\n");
-  return header;
 }
 
 void *perform_http(void * vargs) {
+  puts("INFO: Doing the http thang.\n");
   thread_args* args = vargs;
 
   int comm_fd = args->comm_fd;
-  DIR * directory = args->directory;
-
+  DIR * directory = opendir(args->directory);
+  if (directory == NULL) {
+    printf("ERROR: Touble opening directory %s\n", strerror(errno));
+    clean_exit();
+  }
   if (comm_fd < 1) { 
     clean_exit();
   }
@@ -157,6 +180,7 @@ void *perform_http(void * vargs) {
       bzero( response, MAX_RES_LEN);
       puts("INFO: Reading client server.\n");
       read(comm_fd,recieved,100);
+      printf("INFO: Recieved header: %s\n", recieved);
       char * method = strtok(recieved, " ");
        
       if (strcmp("GET", method) == 0) {
@@ -164,7 +188,7 @@ void *perform_http(void * vargs) {
         char * file_name = strtok(NULL, " "); 
 
         printf("INFO: Looking for file %s.\n", file_name);
-        while (NULL != (in_file = readdir(directory))) {
+        while ((in_file = readdir(directory)) != NULL) {
           if (strcmp(in_file->d_name, file_name) == 0) { 
             puts("Found file in directory.\n");
             status = ok_response;
@@ -172,7 +196,7 @@ void *perform_http(void * vargs) {
             file = fopen(in_file->d_name, "r");
             if (file == NULL) {
               puts("ERROR: could not open file.\n");
-              exit(1);
+              clean_exit();
             }
             break;
           }
@@ -184,24 +208,24 @@ void *perform_http(void * vargs) {
 
       } else {
         status = not_implemented;
-        puts("INFO: Cound not understand method\n");
+        printf("INFO: Cound not understand method %s.\n", method);
       }
-      header = build_header(status);
-      strcpy(response, header);
+      build_header(response, status);
 
       if (file_found) {
         append_file(response, file);
       }
+
       puts("INFO: Writing response to socket.\n");
       write(comm_fd, response, strlen(response)+1);
       puts("INFO: Done writing response to socket.\n");
+
       puts("INFO: Cleaning up...\n");
       file_found = false;
       puts("INFO: Closing file...\n");
       fclose(file);
-      //m_free(in_file);
-      puts("INFO: Freeing header...\n");
-      m_free(header);
+      puts("INFO: closing directory...\n");
+      closedir(directory);
       puts("INFO: Done Cleaning up.\n");
    
    puts("INFO: Closing socket file descriptors.\n");
@@ -224,10 +248,10 @@ void m_free(void * ptr) {
 }
 
 void clean_exit() {
-  if (comm_fd > 0) close(comm_fd);
   if (listen_fd > 0) close(listen_fd);
   exit(1);
 }
 
 void interupt_handler(int param) {
+  clean_exit();
 }

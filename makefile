@@ -33,6 +33,9 @@ configuredebug: all
 debug:
 	gdb --args $(CLIENT) http://www.git.local/server.c:8000
 
+sdebug:
+	gdb --args $(SERVER) 8000 .
+
 crun: 
 	./$(CLIENT) http://www.git.local/server.c:8000
 
