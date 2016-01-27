@@ -263,5 +263,6 @@ void clean_exit() {
 }
 
 void interupt_handler(int param) {
+  clean();
   clean_exit();
 }
