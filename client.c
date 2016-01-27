@@ -13,6 +13,7 @@
 #include <unistd.h> // close
 #include <stdbool.h>
 #include <errno.h>
+#include <signal.h>
 #include <assert.h>
 #include <sys/socket.h> // socket functions
 #include <sys/types.h>  // socket data structures
@@ -29,6 +30,8 @@ void parse_URI(char *uri, char *hostname, int *port, char *identifier);
 void perform_http(int sockid, char *hostname, char *identifier);
 int open_connection(char *hostname, int port);
 void debug(char * out);
+int sockid;
+void interupt_handler(int);
 
 /* --------- Main() routine ------------
  * three main task will be excuted:
@@ -40,10 +43,12 @@ void debug(char * out);
 
 int main(int argc, char **argv)
 {
+    signal(SIGINT, interupt_handler);
+
     char uri[MAX_STR_LEN];
     char hostname[MAX_STR_LEN];
     char identifier[MAX_STR_LEN];
-    int sockid, port;
+    int port;
     if (argv[1] != NULL) {
       strcpy(uri, argv[1]);
     } else {
@@ -111,7 +116,7 @@ void parse_URI(char *uri, char *hostname, int *port, char *identifier)
     identifier = NULL;
   }
   if (host != NULL) strcpy(hostname, host);
-
+  free(uri_cpy);
   if (DEBUG) {
    // printf("INFO: Host %s\n Identifier %s\n Port %d\n", hostname, identifier, *port);
   }
@@ -169,9 +174,7 @@ void perform_http(int sockfd, char* hostname, char *identifier)
     if (DEBUG) { puts("INFO: sending header."); }
 
     while(!done_recieving) {
-        int bytes_read = 0;
         bzero( sendline, MAX_STR_LEN);
-        bzero( recvline, MAX_STR_LEN);
 
         if (!header_sent) {
           header_sent = true;
@@ -182,15 +185,26 @@ void perform_http(int sockfd, char* hostname, char *identifier)
           puts("HTTP request sent, awaiting response...");
         }
 
-        bytes_read = read(sockfd,recvline,100);
-
-        if (bytes_read == 0) {
-          done_recieving = true;
+        int bytes_read = -1;
+        while (bytes_read != 0) {
+          bzero( recvline, MAX_STR_LEN);
+          bytes_read = read(sockfd,recvline,100);
+          if(bytes_read < 0) {
+           printf("ERROR: Recieving bytes from server %s\n",strerror(errno)); 
+           break;
+          } else {
+          printf("%s",recvline);
+          }
         }
 
-        printf("%s",recvline);
+        if (header_sent) {
+          done_recieving = true;
+          free(header);
+          free(host_field_with_arguement);
+        }
+        
     }
-    puts("--Done recieving---");
+   puts("--Done recieving---");
    close(sockfd);
 }
 
@@ -243,6 +257,10 @@ int open_connection(char *hostname, int port)
   }
   if (DEBUG) { puts("INFO: Connected to server."); }
   return sockfd;
+}
+
+void interupt_handler(int p) {
+  close(sockid);
 }
 
 void debug(char * out) 

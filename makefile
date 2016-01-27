@@ -33,8 +33,8 @@ configuredebug: all
 debug:
 	gdb --args $(CLIENT) http://www.example.com
 
-run: 
-	./$(CLIENT) http://localhost/client.c:8000
+crun: 
+	./$(CLIENT) http://www.git.local/server.c:8000
 
 test2:
 	./mClient http://www.git.local:8888
