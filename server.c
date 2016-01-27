@@ -227,11 +227,11 @@ void *perform_http(void * vargs) {
       puts("INFO: Done writing response to socket.\n");
 
       puts("INFO: Cleaning up...\n");
-      file_found = false;
       puts("INFO: Closing file...\n");
-      fclose(file);
+      if (file_found) fclose(file);
+      file_found = false;
       puts("INFO: closing directory...\n");
-      closedir(directory);
+      if (directory != NULL) closedir(directory);
       puts("INFO: Done Cleaning up.\n");
    
    puts("INFO: Closing socket file descriptors.\n");

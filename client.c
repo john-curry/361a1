@@ -86,22 +86,15 @@ void parse_URI(char *uri, char *hostname, int *port, char *identifier)
   char * protocol = strtok(uri_cpy, d1); // read up to the first colon "/"
 
   if (strcmp(protocol, "http") != 0) {
-    puts("No protocol or bad protocol entered. Exiting program");
+    printf("Expected http protocol. Got %s\n", protocol);
     exit(0);
   }
 
-  char * host = strtok(NULL, d2); // read up to the first slash "/"
+  char * host = strtok(NULL, d1); // read up to the first slash "/"
   
   while (host[0] == '/') host++; // get rid of the leading slash slash "//"
 
-  char * id = strtok(NULL, d1); // the id is beteen the end of the host and the first colon ":"
-  // if there is no id then there will be no '/' and just a straight colon ':' 
-  // the port is from the id to the end of the line or from the last ':' to the end of line
-  
-  if (id == NULL) {
-  }
-
-  char * port_str = strtok(NULL, d1);
+  char * port_str = strtok(NULL, d2);
   if (port_str == NULL) {
     *port = 80;
   } else {
@@ -110,6 +103,11 @@ void parse_URI(char *uri, char *hostname, int *port, char *identifier)
       *port = 80;
     }
   }
+
+  char * id = strtok(NULL, " \n\r:"); // the id is beteen the end of the host and the first colon ":"
+  // if there is no id then there will be no '/' and just a straight colon ':' 
+  // the port is from the id to the end of the line or from the last ':' to the end of line
+  
   if (id != NULL) {
     strcpy(identifier, id);
   } else {
@@ -203,7 +201,6 @@ void perform_http(int sockfd, char* hostname, char *identifier)
           done_recieving = true;
         }
    }
-   //free(header);
    free(host_field_with_arguement);
    puts("--Done recieving---");
    close(sockfd);
