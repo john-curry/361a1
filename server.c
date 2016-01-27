@@ -1,73 +1,87 @@
-/*------------------------------
-* server.c
-* Description: HTTP server program
-* CSC 361
-* Instructor: Kui Wu
--------------------------------*/
+/*Required Headers*/
+ 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#define MAX_STR_LEN 120         /* maximum string length */
-#define SERVER_PORT_ID 9898     /* server port number */
-#define DEBUG 1
-void cleanExit();
+#include <strings.h>
+#include <string.h>
+#include <unistd.h> 
+#include <time.h> 
+char * mtime() {
+  struct tm *tm;
+  time_t t;
+  char str_time[100];
+  char str_date[100];
+  t = time(NULL);
+  tm = localtime(&t);
 
-/*---------------------main() routine--------------------------*
- * tasks for main
- * generate socket and get socket id,
- * max number of connection is 3 (maximum length the queue of pending connections may grow to)
- * Accept request from client and generate new socket
- * Communicate with client and close new socket after done
- *---------------------------------------------------------------------------*/
-void cleanExit();
-void perform_http(int);
-
-int main(int argc, char **argv)
-{
-    //int sockfd, newsockid, clilen, n;
-    //struct sockadd_in, serv_addr, cli_addr;
-    //int port = 80;
-    //if (sockfd = socket(AF_INET, SOCK_STREAM, 0) < ) {
-    //  printf("ERROR: Failed to get a socket.\n");
-    //  exit(1);
-    //}
-
-    //memset((char *)serv_addr, 0, sizeof(serv_addr)); 
-
-    //serv_addr.sin_family = AF_INET;
-    //serv_addr.sin_addr.s_addr = INADDR_ANY;
-    //serv_addr.sin_port = htons(port);
-    //
-    //if (bind(sockfd, (struct sock_addr *) &serv_addr, sizeof(serv_addr)) < 0) {
-    //  printf("ERROR: Recieved error");
-    //while (1)
-    //{
-    //  close(newsockid);
-    //}
-    //return 0;
+  strftime(str_time, sizeof(str_time), "%H:%M:%S GMT ", tm);
+  strftime(str_date, sizeof(str_date), "Date: %a, %d %b %Y", tm);
+  strcat(str_date, str_time);
+  //printf("Got time %s\n", str_date);
+  char * ret = (char *)malloc(strlen(str_date) * sizeof(char));
+  strcpy(ret, str_date);
+  strcat(ret, "\n");
+  return ret;
 }
+int main(int argc, char** argv) {
 
-/*---------------------------------------------------------------------------*
- *
- * cleans up opened sockets when killed by a signal.
- *
- *---------------------------------------------------------------------------*/
+    if (argc < 1) {
+      perror("We need a port number to operate");
+      exit(1);
+    }
+ 
+    char response[100];
+    char recieved[100];
 
-void cleanExit()
-{
-    exit(0);
-}
+    char * http_response = "HTTP/1.1 ";
+    char * ok_response = "200 OK\n";
+    char * serv_info = "Server: SimServer/0.0.1 (Linux)\n";
+    char * current_time = mtime();
 
-/*---------------------------------------------------------------------------*
- *
- * Accepts a request from "sockid" and sends a response to "sockid".
- *
- *---------------------------------------------------------------------------*/
+    int listen_fd, comm_fd;
+ 
+    struct sockaddr_in servaddr;
+ 
+    listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+ 
+    bzero( &servaddr, sizeof(servaddr));
+ 
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htons(INADDR_ANY);
+    servaddr.sin_port = htons(atoi(argv[1]));
+ 
+    bind(listen_fd, (struct sockaddr *) &servaddr, sizeof(servaddr));
+ 
+    listen(listen_fd, 10);
+ 
+    comm_fd = accept(listen_fd, (struct sockaddr*) NULL, NULL);
+ 
+    while(1) {
+ 
+        bzero( recieved, 100);
+        bzero( response, 100);
+ 
+        read(comm_fd,recieved,100);
+        
+        if (strncmp("GET", recieved, 3) == 0) {
+          strcpy(response, http_response);
+          strcat(response, ok_response);
+          strcat(response, current_time);
+          strcat(response, serv_info);
+          strcat(response, "\r\n\r\n");
 
-void perform_http(int sockid)
-{
+          write(comm_fd, response, strlen(response)+1);
+          printf("Revieved a GET responding with- %s\n",response);
+        } else {
+          write(comm_fd, recieved, strlen(recieved)+1);
+          printf("Echoing back - %s\n", recieved);
+        }
 
+ 
+ 
+    }
 }
