@@ -16,7 +16,7 @@
 int start_server(int);
 void perform_http(int comm_fd, DIR * directory);
 char * mtime();
-
+const int MAX_RES_LEN = 10000; // large number
 
 int main(int argc, char** argv) {
 
@@ -63,9 +63,9 @@ int start_server(int port) {
 }
 
 void perform_http(int comm_fd, DIR * directory) {
-  char response[100];
-  char recieved[100];
-
+  char response[MAX_RES_LEN];
+  char recieved[MAX_RES_LEN];
+  FILE * file;
   struct dirent * in_file = NULL; 
   char * status = NULL;
   bool file_found = false;
@@ -74,34 +74,43 @@ void perform_http(int comm_fd, DIR * directory) {
   char * not_found = "404 Not Found.\r\n\r\n";
   char * not_implemented = "505 Not Implemented.\r\n\r\n";
 
-  char * data = "<!DOCTYPE html><html><head>Someones age is how long you have known them.</head><body></body></html>";
+  //char * data = "<!DOCTYPE html><html><head>Someones age is how long you have known them.</head><body></body></html>";
   char * serv_info = "Server: SimServer/0.0.1 (Linux)\n";
   char * current_time = mtime();
 
   while(1) {
-      bzero( recieved, 100);
-      bzero( response, 100);
+      bzero( recieved, MAX_RES_LEN);
+      bzero( response, MAX_RES_LEN);
 
       read(comm_fd,recieved,100);
       char * method = strtok(recieved, " ");
        
       if (strcmp("GET", method) == 0) {
-        char * file = strtok(NULL, " "); 
-        
+        puts("INFO: Recieved GET method.\n");
+        char * file_name = strtok(NULL, " "); 
+
+        printf("INFO: Looking for file %s.\n", file_name);
         while (NULL != (in_file = readdir(directory))) {
-          if (strcmp(in_file->d_name, file) == 0) { 
+          if (strcmp(in_file->d_name, file_name) == 0) { 
+            puts("Found file in directory.\n");
             status = ok_response;
             file_found = true;
+            file = fopen(in_file->d_name, "r");
+            if (file == NULL) {
+              puts("ERROR: could not open file.\n");
+              exit(1);
+            }
+            break;
           }
         }
         if (status == NULL) {
+          puts("INFO: Cound not find file.\n");
           status = not_found;
         }
 
-        printf("Revieved a GET responding with - %s\n",response);
       } else {
         status = not_implemented;
-        printf("Revieved inimplented method with - %s\n",response);
+        puts("INFO: Cound not understand method\n");
       }
 
       
@@ -112,9 +121,15 @@ void perform_http(int comm_fd, DIR * directory) {
       strcat(response, "\r\n\r\n");
 
       if (file_found) {
-        // read file and send it over the line
+        puts("INFO: Reading file.\n");
+        char line[255];
+        while((fgets(line, sizeof(line), file) != NULL) && strlen(response) < MAX_RES_LEN) {
+          strcat(response, line);
+        }
+        puts("INFO: Done reading file.\n");
       }
-      write(comm_fd, recieved, strlen(recieved)+1);
+      puts("INFO: Writing response to file.\n");
+      write(comm_fd, response, strlen(response)+1);
       file_found = false;
    }
 }

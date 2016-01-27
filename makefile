@@ -1,6 +1,6 @@
 #makefile for project 1 works both in linux and unix system now
 CC=gcc
-FLAGS=-Wall -pedantic -g -std=c11
+FLAGS=-Wall -pedantic -g -std=c1x
 LINKS=-lnsl
 CLIENT=SimpClient
 SERVER=SimpServer
