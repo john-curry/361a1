@@ -46,7 +46,8 @@ int main(int argc, char** argv) {
     comm_fd = start_server(atoi(argv[1])); 
 
     perform_http(comm_fd, directory);
- 
+    
+    close(listen_fd); 
 }
 
 int start_server(int port) {
@@ -125,10 +126,14 @@ void perform_http(int comm_fd, DIR * directory) {
 
   //char * data = "<!DOCTYPE html><html><head>Someones age is how long you have known them.</head><body></body></html>";
 
-  while(1) {
+      puts("INFO: Starting server.\n");
       bzero( recieved, MAX_RES_LEN);
       bzero( response, MAX_RES_LEN);
-
+      if (comm_fd < 1) { 
+        close(comm_fd);
+        return;    
+      }
+      puts("INFO: Reading client server.\n");
       read(comm_fd,recieved,100);
       char * method = strtok(recieved, " ");
        
@@ -176,10 +181,9 @@ void perform_http(int comm_fd, DIR * directory) {
       puts("INFO: Freeing header...\n");
       m_free(header);
       puts("INFO: Done Cleaning up.\n");
-   }
+   
    puts("INFO: Closing socket file descriptors.\n");
    close(comm_fd);
-   close(listen_fd);
 }
 
 void append_file(char * response, FILE * file) {
