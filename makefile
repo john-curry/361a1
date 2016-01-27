@@ -34,7 +34,7 @@ debug:
 	gdb --args $(CLIENT) http://www.example.com
 
 crun: 
-	./$(CLIENT) http://localhost/client.c:8000
+	./$(CLIENT) http://www.git.local/server.c:8000
 
 srun:
 	./$(SERVER) 8000 .
