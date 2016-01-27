@@ -187,8 +187,10 @@ void perform_http(int sockfd, char* hostname, char *identifier)
 
         int bytes_read = -1;
         while (bytes_read != 0) {
+
           bzero( recvline, MAX_STR_LEN);
           bytes_read = read(sockfd,recvline,100);
+
           if(bytes_read < 0) {
            printf("ERROR: Recieving bytes from server %s\n",strerror(errno)); 
            break;
@@ -199,11 +201,10 @@ void perform_http(int sockfd, char* hostname, char *identifier)
 
         if (header_sent) {
           done_recieving = true;
-          free(header);
-          free(host_field_with_arguement);
         }
-        
-    }
+   }
+   //free(header);
+   free(host_field_with_arguement);
    puts("--Done recieving---");
    close(sockfd);
 }

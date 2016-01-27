@@ -31,7 +31,7 @@ configuredebug: all
 	cat server.c | sed 's/DEBUG [0-1]/DEBUG 1/'
 
 debug:
-	gdb --args $(CLIENT) http://www.example.com
+	gdb --args $(CLIENT) http://www.git.local/server.c:8000
 
 crun: 
 	./$(CLIENT) http://www.git.local/server.c:8000
