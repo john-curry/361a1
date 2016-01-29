@@ -7,14 +7,6 @@
 
 #include "client.h"
 
-/* --------- Main() routine ------------
- * three main task will be excuted:
- * accept the input URI and parse it into fragments for further operation
- * open socket connection with specified sockid ID
- * use the socket id to connect sopecified server
- * don't forget to handle errors
- */
-
 int main(int argc, char **argv)
 {
     signal(SIGINT, interupt_handler);
@@ -23,11 +15,11 @@ int main(int argc, char **argv)
     char hostname[MAX_STR_LEN];
     char identifier[MAX_STR_LEN];
     int port;
+
     if (argv[1] != NULL) {
       strcpy(uri, argv[1]);
-    } else {
-      puts("please enter a uri:");
-      scanf("%s", uri);
+      puts("ERROR: SimpClient requires a uri as a arguement.\n");
+      exit(1);
     }
 
     printf("\nOpenning URI: %s\n", uri);
@@ -60,17 +52,15 @@ void parse_URI(char *uri, char *hostname, int *port, char *identifier)
   char * protocol = strtok(uri_cpy, d1); // read up to the first colon "/"
 
   if (strcmp(protocol, "http") != 0) {
-    puts("No protocol or bad protocol entered. Exiting program");
-    exit(0);
+    puts("No protocol or bad protocol entered. Exiting program.\n");
+    goto clean_exit;
   }
 
   char * host = strtok(NULL, d2); // read up to the first slash "/"
   
   while (host[0] == '/') host++; // get rid of the leading slash slash "//"
 
-  char * id = strtok(NULL, d1); // the id is beteen the end of the host and the first colon ":"
-  // if there is no id then there will be no '/' and just a straight colon ':' 
-  // the port is from the id to the end of the line or from the last ':' to the end of line
+  char * id = strtok(NULL, d1); 
   
   if (id == NULL) {
   }
@@ -90,10 +80,9 @@ void parse_URI(char *uri, char *hostname, int *port, char *identifier)
     identifier = NULL;
   }
   if (host != NULL) strcpy(hostname, host);
+
+  clean_exit:
   free(uri_cpy);
-  if (DEBUG) {
-   // printf("INFO: Host %s\n Identifier %s\n Port %d\n", hostname, identifier, *port);
-  }
 }
 
 /*------------------------------------*
