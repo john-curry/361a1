@@ -5,3 +5,4 @@ Added an index.html
 Added the interactive client
 Added README
 Moved inludes, defines and function definitions to header files
+Changed perform_http method to send uri to server instead of just the identifier so SimpClient now gets a 200 status from most websites
