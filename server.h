@@ -20,11 +20,12 @@
 #include <signal.h>
 #include <pthread.h>
 #include <errno.h>
-
+#include "parse_URI.h"
 #define DEBUG 1 
 #define MAX_CONNECTIONS 3 // change this for more connections
+#ifndef MAX_RES_LEN
 #define MAX_RES_LEN 10000 // large number
-
+#endif
 int listen_fd; // global listening file descriptor is global so it can be closed on interupt
 
 // this struct is passed to perform_http through the pthread_create api
@@ -54,7 +55,7 @@ int start_server(int);
 */
 int find_connection(int l_fd);
 
- /* Function: perform_http 
+ /* Function: server_perform_http 
 
   * Args: thread_arg passed as a void*
 
@@ -62,7 +63,7 @@ int find_connection(int l_fd);
 
   * Notes: method conforms to pthread calling standard as it is passed to pthread_create to make server multithreaded.
 */
-void *perform_http(void*);
+void *server_perform_http(void*);
 
 void mtime(char response[]);
 void interupt_handler(int);

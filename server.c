@@ -1,5 +1,5 @@
 #include "server.h"
-
+#include "client.h"
 int main(int argc, char** argv) {
     signal(SIGINT, interupt_handler);
     signal(SIGABRT, interupt_handler);
@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
 
       puts("INFO: Creating pthread.\n");
 
-      if (pthread_create(&thread_id, NULL, &perform_http,(void*) &args) != 0) {
+      if (pthread_create(&thread_id, NULL, &server_perform_http,(void*) &args) != 0) {
         puts("ERROR: Could not create thread.\n");
         close(listen_fd);
         close(new_comm_fd);
@@ -108,7 +108,7 @@ void build_header(char response[], char * status) {
   puts("INFO: Done building header.\n");
 }
 
-void *perform_http(void * vargs) {
+void *server_perform_http(void * vargs) {
   puts("INFO: Doing the http thang.\n");
   thread_args* args = vargs;
 
@@ -143,14 +143,21 @@ void *perform_http(void * vargs) {
 
       char * method = strtok(recieved, " ");
 
-      char * file_name = strtok(NULL, " "); 
-
-      if (strncmp(file_name, "http", 4) == 0) {
-        strtok(NULL, "/");
-        file_name = strtok(NULL, " ");
-      }
+      char * uri = strtok(NULL, " "); 
 
       char * version = strtok(NULL, "\r\n");
+      
+      char file_name[MAX_RES_LEN];
+
+      char host[MAX_RES_LEN];
+
+      int port;
+
+      if (strncmp(uri, "http", 4) == 0) {
+        parse_URI(uri, host, &port, file_name);
+      } else {
+        strcpy(file_name,uri);
+      }
 
       if (strcmp(version, "HTTP/1.0") != 0) {
         printf("ERROR: %s not supported. Exiting request.\n", version);

@@ -38,64 +38,6 @@ int main(int argc, char **argv)
     return 0;
 }
 
-/*------ Parse an "uri" into "hostname" and resource "identifier" --------*/
-
-void parse_URI(char *uri, char *hostname, int *port, char *identifier)
-{
-  char * d1 = ":";
-  char * d2 = "/";
-    
-  // resist mangling the input uri
-  char * uri_cpy = (char *)malloc(sizeof(char) * strlen(uri));
-  strcpy(uri_cpy, uri);
-
-  // make sure we are parsing an http uri
-  char * protocol = strtok(uri_cpy, d1); // read up to the first colon "/"
-
-  if (strcmp(protocol, "http") != 0) {
-    printf("Expected http protocol. Got %s\n", protocol);
-    goto error_exit;
-  }
-
-  char * host = strtok(NULL, d1); // read up to the first slash "/"
-  
-  while (host[0] == '/') host++; // get rid of the leading slash slash "//"
-
-  char * port_str = strtok(NULL, d2);
-
-  if (port_str == NULL) {
-    *port = 80;
-  } else {
-    *port = atoi(port_str);
-    if (*port == -1) {
-      *port = 80;
-    }
-  }
-
-  char * id = strtok(NULL, " \n\r:");
-  
-  if (id != NULL) {
-    strcpy(identifier, id);
-  } else {
-    identifier = "index.html"; 
-  }
-  if (host != NULL) {
-    strcpy(hostname, host);
-    goto clean_exit;
-  } else {
-    puts("ERROR: Expected a hostname got NULL\n");
-    goto error_exit;
-  }
-
-  clean_exit:
-  free(uri_cpy);
-  return;
-
-  error_exit:
-  free(uri_cpy);
-  exit(1);
-}
-
 /*------------------------------------*
 * I am assuming that the we have already called
 * connect on the socket and we are connected to 

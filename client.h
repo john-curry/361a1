@@ -19,27 +19,18 @@
 #include <sys/types.h>  // socket data structures
 #include <netinet/in.h>
 #include <netdb.h>
-
+#include "parse_URI.h"
 /* define maximal string and reply length, this is just an example.*/
 /* MAX_RES_LEN should be defined larger (e.g. 4096) in real testing. */
 #define MAX_STR_LEN 255
+#ifndef MAX_RES_LEN
 #define MAX_RES_LEN 255
+#endif
 #define DEBUG 1
 
 // this is here so the interupt handler can close it when something stops the program
 int sockid;
 
- /* Function: parse_URI
-
-  * Args: an http uri. Quits if there is no http header specified
-          at the beginning of the uri.
-
-  * Return: hostname, port and identifier. Quits if there is no hostname. Port defaults to 80 and identifier defaults to index.html
-
-  * Notes: 
-*/
-
-void parse_URI(char *uri, char *hostname, int *port, char *identifier);
 
 /*
   * Function: perform_http

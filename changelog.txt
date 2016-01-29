@@ -7,3 +7,5 @@ Added README
 Moved inludes, defines and function definitions to header files
 Changed perform_http method to send uri to server instead of just the identifier so SimpClient now gets a 200 status from most websites
 Added comments to header files
+Moved parse_URI to header file because it is used in both the server and the client
+Server accepts both full URI in header and it also accepts just the identifier
