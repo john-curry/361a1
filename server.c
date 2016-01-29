@@ -145,6 +145,11 @@ void *perform_http(void * vargs) {
 
       char * file_name = strtok(NULL, " "); 
 
+      if (strncmp(file_name, "http", 4) == 0) {
+        strtok(NULL, "/");
+        file_name = strtok(NULL, " ");
+      }
+
       char * version = strtok(NULL, "\r\n");
 
       if (strcmp(version, "HTTP/1.0") != 0) {
