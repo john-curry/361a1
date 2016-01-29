@@ -1,0 +1,11 @@
+#!/bin/bash
+MPROMPT="Enter a uri(Q to quit): "
+echo $MPROMPT
+read URI
+
+while [ $URI  != "Q" ]
+do
+  ./SimpClient $URI
+  echo $MPROMPT
+  read URI
+done

@@ -1,37 +1,4 @@
-/*Required Headers*/
- 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <dirent.h>
-#include <netdb.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <strings.h>
-#include <string.h>
-#include <unistd.h> 
-#include <time.h> 
-#include <stdbool.h>
-#include <signal.h>
-#include <pthread.h>
-#include <errno.h>
-
-typedef struct _thread_args {
-  int comm_fd;
-  char * directory;
-} thread_args;
-
-int start_server(int);
-int find_connection(int l_fd);
-void *perform_http(void*);
-void mtime(char response[]);
-const int MAX_RES_LEN = 10000; // large number
-void interupt_handler(int);
-void m_free(void*);
-void append_file(char*, FILE*);
-void build_header(char response[], char * status);
-int listen_fd;
-void clean_exit();
+#include "server.h"
 
 int main(int argc, char** argv) {
     signal(SIGINT, interupt_handler);
@@ -132,13 +99,6 @@ void build_header(char response[], char * status) {
   
   char * http_response = "HTTP/1.0 ";
   char * serv_info = "Server: SimServer/0.0.1 (Linux)\n";
-  //char* header = (char *)malloc((sizeof(char))*(
-  //strlen( http_response) +
-  //strlen( status) + 
-  //strlen( current_time) +
-  //strlen( serv_info) +
-  //strlen( "\r\n\r\n") + 5
-  //));   
 
   strcpy(response, http_response);
   strcat(response, status);
@@ -164,7 +124,6 @@ void *perform_http(void * vargs) {
 
   char response[MAX_RES_LEN];
   char recieved[MAX_RES_LEN];
-  char * header;
   FILE * file;
   struct dirent * in_file = NULL; 
   char * status = NULL;
@@ -230,6 +189,8 @@ void *perform_http(void * vargs) {
    
    puts("INFO: Closing socket file descriptors.\n");
    close(comm_fd);
+   int ret = 42; // void * return is required by pthread
+   pthread_exit(&ret);
 }
 
 void append_file(char * response, FILE * file) {

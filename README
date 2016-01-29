@@ -1,0 +1,33 @@
+361 Assignment 1 Simple HTTP Server and Client
+
+// =================================================
+    Author: John Curry
+    Student Number: V00755720
+// =================================================
+
+Build:
+  make
+
+Client:
+  You can run "make crun" to run a sample run of the client, which is the same
+  as running ./SimpClient http://www.example.com:80/index.html. In General the
+  client can be run as:
+
+    ./SimpClient $URI
+
+  There is also an interactive version of the client where you can enter uri's
+  at a prompt. To start the interactive client:
+    
+    ./interactive_client
+
+
+Server:
+  As for the server you can run "make srun" which will start the server in the
+  current directory on port 8000. In general the server can be run as:
+
+    ./SimpServer $PORT $DIRECTORY
+
+    ie: ./SimpServer 8080 .
+
+
+
