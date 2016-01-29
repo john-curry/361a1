@@ -12,11 +12,9 @@ OUT=$(SERVER) $(CLIENT)
 all:$(OUT)
 	ctags *.c
 
-# compile client only 
 $(CLIENT): $(OBJCLIENT)
 	$(CC) $(FLAGS) -o $@ $^ $(FLAGS)
 
-#compile server only
 $(SERVER): $(OBJSERVER)
 	$(CC) $(FLAGS) -o $@ $^ $(FLAGS)
 
@@ -30,16 +28,14 @@ configuredebug: all
 	cat client.c | sed 's/DEBUG [0-1]/DEBUG 1/'
 	cat server.c | sed 's/DEBUG [0-1]/DEBUG 1/'
 
-debug:
-	gdb --args $(CLIENT) http://www.git.local/server.c:8000
+cdebug:
+	gdb --args $(CLIENT) http://www.example.com:80/index.html
 
 sdebug:
 	gdb --args $(SERVER) 8000 .
 
 crun: 
-	./$(CLIENT) http://www.git.local/server.c:8000
+	./$(CLIENT) http://www.example.com:80/index.html
 
 srun:
 	./$(SERVER) 8000 .
-test2:
-	./mClient http://www.git.local:8888

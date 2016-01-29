@@ -12,12 +12,8 @@ int main(int argc, char** argv) {
         
     char *directory = argv[2];
 
-    if (directory == NULL) {
-      puts("ERROR: Could not open directory.\n");
-      exit(1);
-    }
-
     listen_fd = start_server(atoi(argv[1]));
+
     if (listen_fd < 0) {
       puts("ERROR: Could not open a port to listen on.\n");
       clean_exit();
@@ -63,7 +59,7 @@ int start_server(int port) {
  
     puts("INFO: listening server.\n");
 
-    listen(listen_fd, 3);
+    listen(listen_fd, MAX_CONNECTIONS);
     
     return listen_fd; 
 }

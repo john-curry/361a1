@@ -29,5 +29,6 @@ Server:
 
     ie: ./SimpServer 8080 .
 
-
-
+Documentation:
+  The relevant documentation for the client and server is in their respective
+  header files.
