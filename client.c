@@ -16,8 +16,9 @@ int main(int argc, char **argv)
     char identifier[MAX_STR_LEN];
     int port;
 
-    if (argv[1] != NULL) {
+    if (argc != 1) {
       strcpy(uri, argv[1]);
+    } else {
       puts("ERROR: SimpClient requires a uri as a arguement.\n");
       exit(1);
     }
@@ -52,20 +53,16 @@ void parse_URI(char *uri, char *hostname, int *port, char *identifier)
   char * protocol = strtok(uri_cpy, d1); // read up to the first colon "/"
 
   if (strcmp(protocol, "http") != 0) {
-    puts("No protocol or bad protocol entered. Exiting program.\n");
-    goto clean_exit;
+    printf("Expected http protocol. Got %s\n", protocol);
+    goto error_exit;
   }
 
-  char * host = strtok(NULL, d2); // read up to the first slash "/"
+  char * host = strtok(NULL, d1); // read up to the first slash "/"
   
   while (host[0] == '/') host++; // get rid of the leading slash slash "//"
 
-  char * id = strtok(NULL, d1); 
-  
-  if (id == NULL) {
-  }
+  char * port_str = strtok(NULL, d2);
 
-  char * port_str = strtok(NULL, d1);
   if (port_str == NULL) {
     *port = 80;
   } else {
@@ -74,15 +71,29 @@ void parse_URI(char *uri, char *hostname, int *port, char *identifier)
       *port = 80;
     }
   }
+
+  char * id = strtok(NULL, " \n\r:");
+  
   if (id != NULL) {
     strcpy(identifier, id);
   } else {
-    identifier = NULL;
+    identifier = "index.html"; 
   }
-  if (host != NULL) strcpy(hostname, host);
+  if (host != NULL) {
+    strcpy(hostname, host);
+    goto clean_exit;
+  } else {
+    puts("ERROR: Expected a hostname got NULL\n");
+    goto error_exit;
+  }
 
   clean_exit:
   free(uri_cpy);
+  return;
+
+  error_exit:
+  free(uri_cpy);
+  exit(1);
 }
 
 /*------------------------------------*
@@ -94,58 +105,47 @@ void perform_http(int sockfd, char* hostname, char *identifier)
 {  
     char sendline[MAX_STR_LEN];
     char recvline[MAX_STR_LEN];
-    
-    //while (hostname[0] == 'w' || hostname[0] == '.') hostname++;
+    assert(identifier != NULL); 
+    assert(hostname != NULL); 
+
     char * header;
     char * method = "GET ";
     char * http_version = " HTTP/1.0\r\n\r\n";
-    char * host_field = "Host: ";
-    char * host_field_with_arguement = malloc(sizeof(char) * (strlen(host_field) + strlen(hostname) + 1));
+    //char * host_arg = "Host: "; 
+    //char * end = "\r\n \r\n \r\n";
+     header = (char *)malloc(sizeof(char) * (
+      strlen(method) +
+      strlen("http://") +
+      strlen(hostname) +
+      strlen("/") +
+      strlen(identifier) +
+      strlen(http_version) + 1
+    ));
 
-    char * connection_field = "\nConnection: Keep-Alive\n";
-
-    strcpy(host_field_with_arguement, host_field);
-    strcat(host_field_with_arguement, hostname);
-
-    if (identifier != NULL) {
-      header = (char *)malloc(sizeof(char) * (
-        strlen(method) +
-        strlen(identifier) +
-        strlen(http_version) + 
-        strlen(host_field) +
-        strlen(connection_field) + 1)
-      );
-
-      strcpy(header, method); 
-      strcat(header, identifier);
-      strcat(header, http_version);
-      strcat(header, host_field_with_arguement);
-      strcat(header, connection_field);
-    } else {
-      header = (char *)malloc(sizeof(char) * (
-        strlen(method) +
-        strlen(http_version) + 
-        strlen(host_field) + 1)
-      );
-      strcpy(header, method); 
-      strcat(header, http_version);
-      strcat(header, host_field_with_arguement);
-    }
+    strcpy(header, method); 
+    strcat(header, "http://");
+    strcat(header, hostname); 
+    strcat(header, "/");
+    strcat(header, identifier);
+    strcat(header, http_version);
+    //strcat(header, host_arg);
+    //strcat(header, hostname);
+    //strcat(header, end);
 
     bool done_recieving = false;
-    bool header_sent = false;
-    if (DEBUG) { puts("INFO: sending header."); }
+    bool _sent = false;
+    if (DEBUG) { puts("INFO: sending header.\n"); }
 
     while(!done_recieving) {
         bzero( sendline, MAX_STR_LEN);
 
-        if (!header_sent) {
-          header_sent = true;
-          puts("---Request begin---");
+        if (!_sent) {
+          _sent = true;
+          puts("---Request begin---\n");
           puts(header);
           write(sockfd,header,strlen(header)+1);
-          puts("---Request end---");
-          puts("HTTP request sent, awaiting response...");
+          puts("---Request end---\n");
+          puts("HTTP request sent, awaiting response...\n");
         }
 
         int bytes_read = -1;
@@ -162,13 +162,13 @@ void perform_http(int sockfd, char* hostname, char *identifier)
           }
         }
 
-        if (header_sent) {
+        if (_sent) {
           done_recieving = true;
         }
    }
-   //free(header);
-   free(host_field_with_arguement);
-   puts("--Done recieving---");
+   //free(host_field_with_arguement);
+   free(header);
+   puts("--Done recieving---\n");
    close(sockfd);
 }
 

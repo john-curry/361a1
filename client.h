@@ -19,8 +19,26 @@
 #define MAX_RES_LEN 255
 #define DEBUG 1
 
+ /* Function: parse_URI
+
+  * Args: an http uri. Quits if there is no http header specified
+          at the beginning of the uri.
+
+  * Return: hostname, port and identifier. Quits if there is no hostname. Port defaults to 80 and identifier defaults to index.html
+
+  * Notes: 
+*/
+
 void parse_URI(char *uri, char *hostname, int *port, char *identifier);
+
+/*
+  *
+  *
+  *
+*/
+
 void perform_http(int sockid, char *hostname, char *identifier);
+
 int open_connection(char *hostname, int port);
 void debug(char * out);
 int sockid;

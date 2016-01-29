@@ -90,19 +90,23 @@ void mtime(char response[]) {
   strftime(str_time, sizeof(str_time), "%H:%M:%S GMT ", tm);
   strftime(str_date, sizeof(str_date), "Date: %a, %d %b %Y", tm);
   strcat(str_date, str_time);
-  strcpy(response, str_date);
+  strcat(response, str_date);
   strcat(response, "\n");
 }
 
 void build_header(char response[], char * status) {
   printf("INFO: Building header for status: %s.\n", status);
-  
+   
   char * http_response = "HTTP/1.0 ";
   char * serv_info = "Server: SimServer/0.0.1 (Linux)\n";
 
+  printf("INFO: adding http response %s\n", http_response);
   strcpy(response, http_response);
+  printf("INFO: adding http status %s\n", status);
   strcat(response, status);
+  puts("INFO: adding server time.\n");
   mtime(response);
+  printf("INFO: adding server info %s\n", serv_info);
   strcat(response, serv_info);
   strcat(response, "\r\n\r\n");
   puts("INFO: Done building header.\n");
@@ -115,10 +119,12 @@ void *perform_http(void * vargs) {
   int comm_fd = args->comm_fd;
   DIR * directory = opendir(args->directory);
   if (directory == NULL) {
-    printf("ERROR: Touble opening directory %s\n", strerror(errno));
+    printf("ERROR: Trouble opening directory %s\n", strerror(errno));
+    close(comm_fd);
     clean_exit();
   }
   if (comm_fd < 1) { 
+    close(comm_fd);
     clean_exit();
   }
 
@@ -132,19 +138,30 @@ void *perform_http(void * vargs) {
   char * not_found = "404 Not Found.\r\n\r\n";
   char * not_implemented = "505 Not Implemented.\r\n\r\n";
 
-  //char * data = "<!DOCTYPE html><html><head>Someones age is how long you have known them.</head><body></body></html>";
-
       puts("INFO: Starting server.\n");
       bzero( recieved, MAX_RES_LEN);
       bzero( response, MAX_RES_LEN);
       puts("INFO: Reading client server.\n");
       read(comm_fd,recieved,100);
       printf("INFO: Recieved header: %s\n", recieved);
+
       char * method = strtok(recieved, " ");
-       
+
+      char * file_name = strtok(NULL, " "); 
+
+      char * version = strtok(NULL, "\r\n");
+
+      if (strcmp(version, "HTTP/1.0") != 0) {
+        printf("ERROR: %s not supported. Exiting request.\n", version);
+        clean();
+        close(comm_fd);
+        int ret = 1;
+        pthread_exit(&ret);
+      }
+      printf("INFO: Detected version: %s\n", version);
+
       if (strcmp("GET", method) == 0) {
         puts("INFO: Recieved GET method.\n");
-        char * file_name = strtok(NULL, " "); 
 
         printf("INFO: Looking for file %s.\n", file_name);
         while ((in_file = readdir(directory)) != NULL) {
@@ -153,24 +170,20 @@ void *perform_http(void * vargs) {
             status = ok_response;
             file_found = true;
             file = fopen(in_file->d_name, "r");
-            if (file == NULL) {
-              puts("ERROR: could not open file.\n");
-              clean_exit();
-            }
             break;
           }
         }
-        if (status == NULL) {
+        if (status == NULL || file == NULL) {
           puts("INFO: Cound not find file.\n");
           status = not_found;
         }
-
       } else {
         status = not_implemented;
         printf("INFO: Cound not understand method %s.\n", method);
       }
-      build_header(response, status);
 
+      build_header(response, status);
+      printf("INFO: Built response with header {\n%s\n}\n", response);
       if (file_found) {
         append_file(response, file);
       }
@@ -180,11 +193,11 @@ void *perform_http(void * vargs) {
       puts("INFO: Done writing response to socket.\n");
 
       puts("INFO: Cleaning up...\n");
-      file_found = false;
       puts("INFO: Closing file...\n");
-      fclose(file);
+      if (file_found) fclose(file);
+      file_found = false;
       puts("INFO: closing directory...\n");
-      closedir(directory);
+      if (directory != NULL) closedir(directory);
       puts("INFO: Done Cleaning up.\n");
    
    puts("INFO: Closing socket file descriptors.\n");
@@ -208,11 +221,16 @@ void m_free(void * ptr) {
   }
 }
 
-void clean_exit() {
+void clean() {
   if (listen_fd > 0) close(listen_fd);
+}
+
+void clean_exit() {
+  clean();
   exit(1);
 }
 
 void interupt_handler(int param) {
+  clean();
   clean_exit();
 }

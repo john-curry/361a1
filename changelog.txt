@@ -1,0 +1,7 @@
+Added changelog.txt
+Fixed the HTTP header not being sent to the client
+Added the server requiring http version 1.0
+Added an index.html
+Added the interactive client
+Added README
+Moved inludes, defines and function definitions to header files
